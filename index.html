@@ -4,8 +4,14 @@
   <meta charset="UTF-8">
   <title>Video Certificate Platform</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-    .video-container { margin-bottom: 40px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    .video-container {
+      margin-bottom: 40px;
+    }
     input {
       padding: 8px;
       font-size: 16px;
@@ -59,6 +65,35 @@
     <button id="certBtn2" disabled>Get Certificate</button>
   </div>
 
+  <!-- Video 3 -->
+  <div class="video-container">
+    <div class="course-title" id="courseTitle3">Python Course</div>
+    <div id="player3"></div>
+    <br>
+    <input type="text" id="name3" placeholder="Enter your name">
+    <br>
+    <button id="certBtn3" disabled>Get Certificate</button>
+  </div>
+
+  <!-- Video 4 -->
+  <div class="video-container">
+    <div class="course-title" id="courseTitle4">MS excel course</div>
+    <div id="player4"></div>
+    <br>
+    <input type="text" id="name4" placeholder="Enter your name">
+    <br>
+    <button id="certBtn4" disabled>Get Certificate</button>
+  </div>
+
+  <div class="video-container">
+    <div class="course-title" id="courseTitle5">c++ full Course</div>
+    <div id="player5"></div>
+    <br>
+    <input type="text" id="name5" placeholder="Enter your name">
+    <br>
+    <button id="certBtn5" disabled>Get Certificate</button>
+  </div>
+
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
     let players = {};
@@ -66,45 +101,58 @@
     let lastTime = {};
     let watchIntervals = {};
 
-    // Store course titles (change here only ✅)
+    // Course titles
     const courseTitles = {
       1: "HTML Basics Course",
-      2: "JavaScript Beginner Course"
+      2: "JavaScript Beginner Course",
+      3: "Gorila Beginner Course",
+      4: "Cobra Basics",
+      5: "html basic"
     };
 
+    // When YouTube API ready
     function onYouTubeIframeAPIReady() {
-      players[1] = new YT.Player('player1', {
-        height: '315',
-        width: '560',
-        videoId: 'HcOc7P5BMi4', // Video 1
-        events: { 'onStateChange': (e) => onPlayerStateChange(e, 1) }
-      });
-      players[2] = new YT.Player('player2', {
-        height: '315',
-        width: '560',
-        videoId: 'hKB-YGF14SY', // Video 2
-        events: { 'onStateChange': (e) => onPlayerStateChange(e, 2) }
-      });
-
-      watchedSeconds[1] = 0; watchedSeconds[2] = 0;
-      lastTime[1] = 0; lastTime[2] = 0;
+      createPlayer(1, 'yf3f-igVMc0');
+      createPlayer(2, '3uekfV6npAk');
+      createPlayer(3, 'rfscVS0vtbw');
+      createPlayer(4, '3uekfV6npAk');
+      createPlayer(5,'yf3f-igVMc0');
     }
 
+    // Create YouTube players
+    function createPlayer(num, videoId) {
+      players[num] = new YT.Player(`player${num}`, {
+        height: '315',
+        width: '560',
+        videoId: videoId,
+        events: {
+          'onReady': () => restoreProgress(num),
+          'onStateChange': (e) => onPlayerStateChange(e, num)
+        }
+      });
+
+      watchedSeconds[num] = parseInt(localStorage.getItem(`watchedTime_${num}`)) || 0;
+      lastTime[num] = 0;
+    }
+
+    // Player state changes
     function onPlayerStateChange(event, playerNum) {
       if (event.data === YT.PlayerState.PLAYING) {
         watchIntervals[playerNum] = setInterval(() => {
           let currentTime = Math.floor(players[playerNum].getCurrentTime());
+
+          // Save last position
+          localStorage.setItem(`lastPosition_${playerNum}`, currentTime);
+
           if (currentTime > lastTime[playerNum]) {
             watchedSeconds[playerNum]++;
             lastTime[playerNum] = currentTime;
+
             localStorage.setItem(`watchedTime_${playerNum}`, watchedSeconds[playerNum]);
-            
-            // ✅ Check 30% condition
+
             let duration = players[playerNum].getDuration();
             if (watchedSeconds[playerNum] >= duration * 0.1) {
-              let btn = document.getElementById(`certBtn${playerNum}`);
-              btn.disabled = false;
-              btn.classList.add("active");
+              enableCertificate(playerNum);
             }
           }
         }, 1000);
@@ -113,14 +161,42 @@
       }
     }
 
+    // Restore progress after refresh/reopen
+    function restoreProgress(playerNum) {
+      let savedTime = parseInt(localStorage.getItem(`watchedTime_${playerNum}`)) || 0;
+      let lastPosition = parseInt(localStorage.getItem(`lastPosition_${playerNum}`)) || 0;
+
+      watchedSeconds[playerNum] = savedTime;
+
+      // Resume video from last saved position
+      if (lastPosition > 0 && lastPosition < players[playerNum].getDuration()) {
+        players[playerNum].seekTo(lastPosition, true);
+      }
+
+      let duration = players[playerNum].getDuration();
+      if (savedTime >= duration * 0.3) {
+        enableCertificate(playerNum);
+      }
+    }
+
+    // Enable certificate button
+    function enableCertificate(playerNum) {
+      let btn = document.getElementById(`certBtn${playerNum}`);
+      btn.disabled = false;
+      btn.classList.add("active");
+    }
+
+    // Generate certificate
     function generateCertificate(inputId, playerNum) {
       const userName = document.getElementById(inputId).value.trim();
-      if (!userName) { alert("Please enter your name before generating the certificate."); return; }
+      if (!userName) {
+        alert("Please enter your name before generating the certificate.");
+        return;
+      }
 
       const durationSeconds = players[playerNum].getDuration();
       const durationFormatted = formatDuration(durationSeconds);
-
-      const courseName = courseTitles[playerNum]; // ✅ Pick course title automatically
+      const courseName = courseTitles[playerNum];
 
       const certWindow = window.open('', '_blank');
       certWindow.document.write(`
@@ -177,6 +253,7 @@
       certWindow.document.close();
     }
 
+    // Format duration
     function formatDuration(seconds) {
       const mins = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);
@@ -192,6 +269,10 @@
     window.onload = function() {
       document.getElementById("certBtn1").addEventListener("click", () => generateCertificate("name1", 1));
       document.getElementById("certBtn2").addEventListener("click", () => generateCertificate("name2", 2));
+      document.getElementById("certBtn3").addEventListener("click", () => generateCertificate("name3", 3));
+      document.getElementById("certBtn4").addEventListener("click", () => generateCertificate("name4", 4));
+
+      document.getElementById("certBtn5").addEventListener("click", () => generateCertificate("name5", 5));
     };
   </script>
 </body>
