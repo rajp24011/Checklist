@@ -151,7 +151,7 @@
             localStorage.setItem(`watchedTime_${playerNum}`, watchedSeconds[playerNum]);
 
             let duration = players[playerNum].getDuration();
-            if (watchedSeconds[playerNum] >= duration * 0.1) {
+            if (watchedSeconds[playerNum] >= duration * 0.7) {
               enableCertificate(playerNum);
             }
           }
@@ -174,7 +174,7 @@
       }
 
       let duration = players[playerNum].getDuration();
-      if (savedTime >= duration * 0.3) {
+      if (savedTime >= duration * 0.7) {
         enableCertificate(playerNum);
       }
     }
