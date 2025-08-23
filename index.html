@@ -77,7 +77,7 @@
 
   <!-- Video 4 -->
   <div class="video-container">
-    <div class="course-title" id="courseTitle4">MS excel course</div>
+    <div class="course-title" id="courseTitle4">MS Excel Course</div>
     <div id="player4"></div>
     <br>
     <input type="text" id="name4" placeholder="Enter your name">
@@ -85,8 +85,9 @@
     <button id="certBtn4" disabled>Get Certificate</button>
   </div>
 
+  <!-- Video 5 -->
   <div class="video-container">
-    <div class="course-title" id="courseTitle5">c++ full Course</div>
+    <div class="course-title" id="courseTitle5">C++ Full Course</div>
     <div id="player5"></div>
     <br>
     <input type="text" id="name5" placeholder="Enter your name">
@@ -100,14 +101,15 @@
     let watchedSeconds = {};
     let lastTime = {};
     let watchIntervals = {};
+    let playingNow = null;
 
     // Course titles
     const courseTitles = {
       1: "HTML Basics Course",
       2: "JavaScript Beginner Course",
-      3: "Gorila Beginner Course",
-      4: "Cobra Basics",
-      5: "html basic"
+      3: "Python Course",
+      4: "MS Excel Course",
+      5: "C++ Full Course"
     };
 
     // When YouTube API ready
@@ -116,15 +118,16 @@
       createPlayer(2, 'hKB-YGF14SY');
       createPlayer(3, 'UrsmFxEIp5k');
       createPlayer(4, 'OX-iyb-21tk');
-      createPlayer(5,'e7sAf4SbS_g');
+      createPlayer(5, 'e7sAf4SbS_g');
     }
 
-    // Create YouTube players
+    // Create YouTube players (No Autoplay)
     function createPlayer(num, videoId) {
       players[num] = new YT.Player(`player${num}`, {
         height: '315',
         width: '560',
         videoId: videoId,
+        playerVars: { autoplay: 0 }, // NO AUTOPLAY
         events: {
           'onReady': () => restoreProgress(num),
           'onStateChange': (e) => onPlayerStateChange(e, num)
@@ -137,7 +140,13 @@
 
     // Player state changes
     function onPlayerStateChange(event, playerNum) {
+      // Allow only one video at a time
       if (event.data === YT.PlayerState.PLAYING) {
+        if (playingNow && playingNow !== playerNum) {
+          players[playingNow].pauseVideo();
+        }
+        playingNow = playerNum;
+
         watchIntervals[playerNum] = setInterval(() => {
           let currentTime = Math.floor(players[playerNum].getCurrentTime());
 
@@ -151,7 +160,7 @@
             localStorage.setItem(`watchedTime_${playerNum}`, watchedSeconds[playerNum]);
 
             let duration = players[playerNum].getDuration();
-            if (watchedSeconds[playerNum] >= duration * 0.7) {
+            if (watchedSeconds[playerNum] >= duration * 0.2) {
               enableCertificate(playerNum);
             }
           }
@@ -168,13 +177,12 @@
 
       watchedSeconds[playerNum] = savedTime;
 
-      // Resume video from last saved position
       if (lastPosition > 0 && lastPosition < players[playerNum].getDuration()) {
         players[playerNum].seekTo(lastPosition, true);
       }
 
       let duration = players[playerNum].getDuration();
-      if (savedTime >= duration * 0.7) {
+      if (savedTime >= duration * 0.2) {
         enableCertificate(playerNum);
       }
     }
@@ -188,10 +196,17 @@
 
     // Generate certificate
     function generateCertificate(inputId, playerNum) {
-      const userName = document.getElementById(inputId).value.trim();
+      let userName = localStorage.getItem("certificateName");
       if (!userName) {
-        alert("Please enter your name before generating the certificate.");
-        return;
+        userName = document.getElementById(inputId).value.trim();
+        if (!userName) {
+          alert("Please enter your name before generating the certificate.");
+          return;
+        }
+        localStorage.setItem("certificateName", userName);
+
+        // Hide all name inputs after first save
+        document.querySelectorAll("input[type=text]").forEach(input => input.style.display = "none");
       }
 
       const durationSeconds = players[playerNum].getDuration();
@@ -267,11 +282,15 @@
 
     // Attach button click handlers
     window.onload = function() {
+      // Hide inputs if name is already saved
+      if (localStorage.getItem("certificateName")) {
+        document.querySelectorAll("input[type=text]").forEach(input => input.style.display = "none");
+      }
+
       document.getElementById("certBtn1").addEventListener("click", () => generateCertificate("name1", 1));
       document.getElementById("certBtn2").addEventListener("click", () => generateCertificate("name2", 2));
       document.getElementById("certBtn3").addEventListener("click", () => generateCertificate("name3", 3));
       document.getElementById("certBtn4").addEventListener("click", () => generateCertificate("name4", 4));
-
       document.getElementById("certBtn5").addEventListener("click", () => generateCertificate("name5", 5));
     };
   </script>
